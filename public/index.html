@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Serial Monitor</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f8fafc;
+      }
+
+      .container {
+        max-width: 760px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 320px;
+        font-size: 14px;
+        line-height: 1.45;
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        resize: vertical;
+        box-sizing: border-box;
+      }
+
+      .actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      .status {
+        margin: 8px 0 14px;
+        color: #475569;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      const { useEffect, useMemo, useState } = React;
+
+      function App() {
+        const [messages, setMessages] = useState([]);
+        const [connected, setConnected] = useState(false);
+
+        useEffect(() => {
+          const socket = io();
+
+          socket.on('connect', () => setConnected(true));
+          socket.on('disconnect', () => setConnected(false));
+
+          socket.on('serial-message', (payload) => {
+            setMessages((prev) => [...prev, `[${payload.receivedAt}] ${payload.message}`]);
+          });
+
+          return () => {
+            socket.disconnect();
+          };
+        }, []);
+
+        const textboxValue = useMemo(() => messages.join('\n'), [messages]);
+
+        return React.createElement(
+          'main',
+          { className: 'container' },
+          React.createElement('h1', null, 'Arduino Serial Text Receiver'),
+          React.createElement(
+            'p',
+            { className: 'status' },
+            connected ? 'Connected to Pi server' : 'Disconnected from Pi server'
+          ),
+          React.createElement('textarea', {
+            value: textboxValue,
+            readOnly: true,
+            placeholder: 'Incoming serial text will appear here...'
+          }),
+          React.createElement(
+            'div',
+            { className: 'actions' },
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                onClick: () => setMessages([])
+              },
+              'Clear textbox'
+            )
+          )
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
